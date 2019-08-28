@@ -1,0 +1,193 @@
+<template>
+    <div class="page" data-name="home">
+        <!-- Top Navbar -->
+        <div class="navbar">
+            <div class="navbar-inner">
+                <div class="left">
+                    <a href="#" class="link icon-only panel-open" data-panel="left">
+                        <i class="icon f7-icons if-not-md">menu</i>
+                        <i class="icon material-icons if-md">menu</i>
+                    </a>
+                </div>
+                <div class="title sliding">augmented</div>
+                <div class="title-large">
+                    <div class="title-large-text">augmented</div>
+                </div>
+            </div>
+        </div>
+        <!-- Toolbar-->
+        <div class="toolbar toolbar-bottom">
+            <div class="toolbar-inner">
+                <a href="#" class="link">Left link</a>
+                <a href="#" class="link call-camera"><i class="icon f7-icons">camera</i></a>
+                <a href="#" class="link AR"><i class="icon f7-icons">data</i></a>
+            </div>
+        </div>
+        <!-- Scrollable page content-->
+        <div class="page-content home-page-content">
+            <div class="block block-strong">
+                <p>Here is your blank app.</p>
+            </div>
+
+            <div class="block-title text-align-center">Take a photo</div>
+
+        </div>
+    </div>
+</template>
+<script>
+    export default {
+
+        on: {
+            pageInit: function () {
+
+                var $$ = this.$$, app = this.$app;
+
+                //AR
+                var myapp = {
+
+                    // Url/Path to the augmented reality experience you would like to load
+                    arExperienceUrl: "www/ObjectTracking_1/index.html",
+
+                    // The features your augmented reality experience requires, only define the ones you really need
+                    requiredFeatures: [ "object_tracking" ],
+
+                    // Represents the device capability of launching augmented reality experiences with specific features
+                    isDeviceSupported: false,
+
+                    // Additional startup settings, for now the only setting available is camera_position (back|front)
+                    startupConfiguration:
+                        {
+                            "camera_position": "back"
+                        },
+
+                    // Application Constructor
+                    initialize: function() {
+                        this.bindEvents();
+                    },
+
+                    // Bind any events that are required on startup. Common events are:
+                    // 'load', 'deviceready', 'offline', and 'online'.
+                    bindEvents: function() {
+                        document.addEventListener('deviceready', this.onDeviceReady, false);
+                    },
+
+                    // deviceready Event Handler
+                    onDeviceReady: function() {
+                        myapp.wikitudePlugin = cordova.require("com.wikitude.phonegap.WikitudePlugin.WikitudePlugin");
+                        myapp.wikitudePlugin.isDeviceSupported(myapp.onDeviceSupported, myapp.onDeviceNotSupported, myapp.requiredFeatures);
+                    },
+
+                    // Callback if the device supports all required features
+                    onDeviceSupported: function() {
+
+                        myapp.wikitudePlugin.loadARchitectWorld(
+                            myapp.onARExperienceLoadedSuccessful,
+                            myapp.onARExperienceLoadError,
+                            myapp.arExperienceUrl,
+                            myapp.requiredFeatures,
+                            myapp.startupConfiguration
+                        );
+                    },
+
+                    // Callback if the device does not support all required features
+                    onDeviceNotSupported: function(errorMessage) {
+
+                        app.toast.create({
+                            text: errorMessage,
+                            closeButton: true,
+                            closeButtonText: 'OK',
+                            closeButtonColor: 'red'
+                        }).open();
+                    },
+
+                    // Callback if your AR experience loaded successful
+                    onARExperienceLoadedSuccessful: function(loadedURL) {
+
+                        // NOTE: The 'createCircle(location, color)' function is defined in the AR experience
+                        // createCircle(new AR.RelativeLocation(null, -10, 0), "#97FF18");
+                        // myapp.wikitudePlugin.callJavaScript('');
+                        myapp.toast.create({
+                            text: loadedURL,
+                            closeButton: true,
+                            closeButtonText: 'OK',
+                            closeButtonColor: 'green'
+                        })
+
+                    },
+
+                    // Callback if your AR experience did not load successful
+                    onARExperienceLoadError: function(errorMessage) {
+                        alert('Loading AR web view failed: ' + errorMessage);
+                    },
+
+                };
+
+                $$('.AR').click(function () {
+                    myapp.initialize();
+                });
+                //end AR
+
+                //take a photo: trial
+                $$('.call-camera').click(function () {
+
+                    if (app.device.android){
+
+                        //request write permisions for android
+                        return requestCameraPermissionsForAndroid()
+                    }
+                    //ios capture
+                    return navigator.device.capture.captureImage(
+                        captureSuccess, captureError, {limit: 1}
+                    );
+                });
+
+                function captureSuccess(imageObj) {
+
+                    var imageURI = imageObj[0].fullPath; if(app.device.ios) imageURI = "file://"+imageURI;
+
+                    $$('.home-page-content').empty().append(
+                        '<img src="'+imageURI+'" alt="No image" style="width:100%;height:auto;display:block">'
+                    )
+                }
+                function captureError(error) {
+                    //if the user cancels
+                    if(parseInt(error.code, 10) === 3){
+                        return null;
+                    }
+                    //display error
+                    return app.toast.create({
+                        text: 'Error - ' + JSON.stringify(error),
+                        closeButton: true,
+                        closeButtonText: 'OK',
+                        closeButtonColor: 'red'
+                    }).open();
+                }
+                function requestCameraPermissionsForAndroid() {
+
+                    var permissions = cordova.plugins.permissions;
+                    permissions.hasPermission(permissions.WRITE_EXTERNAL_STORAGE, function( status ){
+                        if ( status.hasPermission ) {
+
+                            return navigator.device.capture.captureImage(captureSuccess, captureError, {limit: 1});
+                        }
+                        else{
+                            //when permission is granted
+                            permissions.requestPermission(permissions.WRITE_EXTERNAL_STORAGE, function () {
+                                    return navigator.device.capture.captureImage(captureSuccess, captureError, {limit: 1});
+                                },
+                                //otherwise
+                                function () {
+                                    app.toast.create({
+                                        text: 'You declined granting permission to take a photo, camera cancelled!',
+                                        closeButton: true,
+                                        closeButtonText: 'OK',
+                                        closeButtonColor: 'red'
+                                    }).open();
+                                });
+                        }
+                    });
+                }
+            }
+        }
+    }
+</script>

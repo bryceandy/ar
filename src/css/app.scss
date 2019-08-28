@@ -1,0 +1,25 @@
+/* iOS Cordova Tweak */
+.device-cordova.device-ios {
+  height: 100vh;
+}
+
+/* Your app custom styles here */
+@font-face {
+  font-family: 'Didact-Gothic Regular';
+  font-style: normal;
+  font-weight: 400;
+  src: url("../fonts/didactgothic-regular.otf") format("opentype");
+}
+
+body{
+  font: {
+    family: "Didact-Gothic Regular";
+  }
+}
+
+//index
+.toggle-dark-mode{
+  font: {
+    size: medium
+  }
+}
